@@ -2,7 +2,7 @@ import tensorflow as tf
 from util.layer import conventional_layers as layers
 
 OVERFLOW_MARGIN = 1e-8
-ADJACENCY_SCALER = 0.1
+ADJACENCY_SCALER = 0.05
 
 
 def build_adjacency(tensor_in):

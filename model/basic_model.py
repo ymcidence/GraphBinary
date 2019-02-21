@@ -75,7 +75,7 @@ class BasicModel(object):
                 _batch_size, _feature_size = self.image_in.get_shape().as_list()
 
                 eps = tf.ones([_batch_size, self.code_length], dtype=D_TYPE) * 0.5
-                code_hidden = tf.nn.sigmoid(layers.fc_layer('code_hidden', bottom=fc_1, output_dim=self.code_length))
+                code_hidden = layers.fc_layer('code_hidden', bottom=fc_1, output_dim=self.code_length)
 
                 codes, code_prob = doubly_sn(code_hidden, eps)
 
@@ -108,7 +108,7 @@ class BasicModel(object):
 
         adj_pic = tf.expand_dims(tf.expand_dims(batch_adjacency, axis=0), axis=-1)
 
-        tf.summary.image('actor/adj', adj_pic)
+        tf.summary.image('actor/adj', tf.nn.sigmoid(adj_pic))
 
         tf.summary.histogram('critic/fake_cont', random_in)
         tf.summary.histogram('critic/fake_binary', random_binary)
@@ -137,7 +137,7 @@ class BasicModel(object):
         critic_loss_2 = tf.reduce_mean(
             tf.log(self.net.get('fake_binary_logic')) + tf.log(1 - self.net.get('real_binary_logic'))) * -1 * self.lam
 
-        critic_loss = critic_loss_1 + critic_loss_2
+        critic_loss = critic_loss_1 + critic_loss_2 + critic_regu
 
         # q_zx = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=self.net.get('code_hidden'),
         #                                                               labels=self.net.get('codes')))
@@ -145,7 +145,8 @@ class BasicModel(object):
         actor_regu = loss_regu(tf.trainable_variables(scope='actor'))
         encoding_loss = tf.reduce_mean(tf.nn.l2_loss(
             self.net.get('decode_result') - self.image_in)) - self.lam * tf.reduce_mean(
-            tf.log(self.net.get('real_logic'))) - self.lam * tf.reduce_mean(tf.log(self.net.get('real_binary_logic')))
+            tf.log(self.net.get('real_logic'))) - self.lam * tf.reduce_mean(
+            tf.log(self.net.get('real_binary_logic'))) + actor_regu
 
         tf.summary.scalar('critic/loss', critic_loss)
         tf.summary.scalar('critic/regu', critic_regu)
