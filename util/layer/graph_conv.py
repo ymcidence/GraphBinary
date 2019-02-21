@@ -12,13 +12,13 @@ def build_adjacency(tensor_in):
     return adjacency
 
 
-
-def graph_laplacian(adjacency):
+def graph_laplacian(adjacency, size):
     """
     :param adjacency: must be self-connected
     :return: 
     """
-    graph_size = adjacency.shape.as_list()[0]
+    # graph_size = adjacency.get_shape().as_list()[0]
+    graph_size = size
     a = adjacency  # + tf.eye(graph_size)
     d = a @ tf.ones([graph_size, 1])
     d_inv_sqrt = tf.pow(d + OVERFLOW_MARGIN, -0.5)
@@ -27,7 +27,7 @@ def graph_laplacian(adjacency):
     return laplacian
 
 
-def spectrum_conv_layer(name, tensor_in, adjacency, out_dim):
+def spectrum_conv_layer(name, tensor_in, adjacency, out_dim, size):
     """
     Convolution on a graph with graph Laplacian
     :param name:
@@ -37,7 +37,7 @@ def spectrum_conv_layer(name, tensor_in, adjacency, out_dim):
     :return:
     """
     fc_sc = layers.fc_layer(name, tensor_in, output_dim=out_dim)
-    conv_sc = graph_laplacian(adjacency) @ fc_sc
+    conv_sc = graph_laplacian(adjacency, size) @ fc_sc
     return conv_sc
 
 
