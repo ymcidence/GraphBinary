@@ -33,15 +33,15 @@ def compute_hamming_dist(a, b):
     return np.abs(c1 + c2)
 
 
-def eval_cls_map(query, target, cls1, cls2):
+def eval_cls_map(query, target, cls1, cls2, at=None):
     """
     Mean average precision computation
-    Args:
-        query:
-        target:
-        cls1:
-        cls2:
-    Returns:
+    :param query:
+    :param target:
+    :param cls1:
+    :param cls2:
+    :param at:
+    :return:
     """
     sim_mat = gen_sim_mat(cls1, cls2)
     query_size = query.shape[0]
@@ -50,10 +50,13 @@ def eval_cls_map(query, target, cls1, cls2):
 
     map_count = 0.
     average_precision = 0.
+
     for i in range(query_size):
         gt_count = 0.
         precision = 0.
-        for j in range(dist_argsort.shape[1]):
+
+        count_size = dist_argsort.shape[1] if at is None else at
+        for j in range(count_size):
             this_ind = dist_argsort[i, j]
             if sim_mat[i, this_ind] == 1:
                 gt_count += 1.

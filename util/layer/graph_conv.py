@@ -2,7 +2,7 @@ import tensorflow as tf
 from util.layer import conventional_layers as layers
 
 OVERFLOW_MARGIN = 1e-8
-ADJACENCY_SCALER = 0.05
+ADJACENCY_SCALER = 0.1
 
 
 def build_adjacency(tensor_in):
@@ -10,6 +10,14 @@ def build_adjacency(tensor_in):
     distances = squared_sum - 2 * tf.matmul(tensor_in, tensor_in, transpose_b=True) + tf.transpose(squared_sum)
     adjacency = tf.exp(-1 * distances / ADJACENCY_SCALER)
     return adjacency
+
+
+def build_adjacency_hamming(tensor_in, code_length=32):
+    m1 = tensor_in - 1
+    c1 = tf.matmul(tensor_in, m1, transpose_b=True)
+    c2 = tf.matmul(m1, tensor_in, transpose_b=True)
+    normalized_dist = tf.math.abs(c1 + c2) / code_length
+    return tf.math.square(1 - normalized_dist)
 
 
 def graph_laplacian(adjacency, size):
