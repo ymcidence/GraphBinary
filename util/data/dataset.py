@@ -100,6 +100,14 @@ class DataHelper(object):
 
         return eval_cls_map(q, q, l, l)
 
+    def hook_test(self):
+        q = self.test_data.this_batch['batch_code']
+        ql = self.test_data.this_batch['batch_label']
+
+        t = self.training_data.code
+        tl = self.training_data.label
+        return eval_cls_map(q, t, ql, tl)
+
 
 if __name__ == '__main__':
     config = dict(

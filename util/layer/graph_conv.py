@@ -17,7 +17,7 @@ def build_adjacency_hamming(tensor_in, code_length=32):
     c1 = tf.matmul(tensor_in, m1, transpose_b=True)
     c2 = tf.matmul(m1, tensor_in, transpose_b=True)
     normalized_dist = tf.math.abs(c1 + c2) / code_length
-    return tf.math.square(1 - normalized_dist)
+    return tf.pow(1 - normalized_dist, 1.4)
 
 
 def graph_laplacian(adjacency, size):

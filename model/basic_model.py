@@ -9,7 +9,7 @@ import os
 D_TYPE = tf.float32
 
 
-def loss_regu(par_list, weight=0.005):
+def loss_regu(par_list, weight=0.):
     single_regu = [tf.nn.l2_loss(v) for v in par_list]
     loss = tf.add_n(single_regu) * weight
     return loss
@@ -79,7 +79,7 @@ class BasicModel(object):
 
                 codes, code_prob = doubly_sn(code_hidden, eps)
 
-                batch_adjacency = gcn.build_adjacency(codes)
+                batch_adjacency = gcn.build_adjacency_hamming(codes, code_length=self.code_length)
 
                 continuous_hidden = tf.nn.sigmoid(
                     gcn.spectrum_conv_layer('gcn', fc_1, batch_adjacency, 512, _batch_size))
@@ -108,7 +108,7 @@ class BasicModel(object):
 
         adj_pic = tf.expand_dims(tf.expand_dims(batch_adjacency, axis=0), axis=-1)
 
-        tf.summary.image('actor/adj', tf.nn.sigmoid(adj_pic))
+        tf.summary.image('actor/adj', adj_pic)
 
         tf.summary.histogram('critic/fake_cont', random_in)
         tf.summary.histogram('critic/fake_binary', random_binary)
@@ -200,8 +200,18 @@ class BasicModel(object):
                 hook_train = data.hook_train()
                 hook_summary = tf.Summary(value=[tf.Summary.Value(tag='hook/train', simple_value=hook_train)])
                 print('batch {}: actor {}, critic {}'.format(i, actor_value, critic_value))
-
                 writer.add_summary(hook_summary, actor_step)
+
+            if (i + 1) % 1000 == 0:
+                print('Testing!!!!!!!!')
+                test_batch = data.next_batch('test')
+                test_dict = {self.image_in: test_batch['batch_image']}
+                test_code = sess.run(self.net['codes'], feed_dict=test_dict)
+                data.update(test_code, phase='test')
+                hook_test = data.hook_test()
+                hook_summary = tf.Summary(value=[tf.Summary.Value(tag='hook/test', simple_value=hook_test)])
+                writer.add_summary(hook_summary, actor_step)
+
             if (i + 1) % 3000 == 0:
                 self._save(sess, save_path, actor_step)
 
@@ -218,7 +228,7 @@ class BasicModel(object):
 
 
 if __name__ == '__main__':
-    batch_size = 100
+    batch_size = 200
     code_length = 32
     train_file = 'data/cifar10_vgg_fc7_train.mat'
     test_file = 'data/cifar10_vgg_fc7_test.mat'
