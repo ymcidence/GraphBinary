@@ -55,12 +55,15 @@ def eval_cls_map(query, target, cls1, cls2, at=None):
         gt_count = 0.
         precision = 0.
 
-        count_size = dist_argsort.shape[1] if at is None else at
-        for j in range(count_size):
+        count_size = 0 if at is None else at
+        for j in range(dist_argsort.shape[1]):
             this_ind = dist_argsort[i, j]
             if sim_mat[i, this_ind] == 1:
                 gt_count += 1.
                 precision += gt_count / (j + 1.)
+
+            if gt_count >= count_size > 0:
+                break
         if gt_count > 0:
             average_precision += precision / gt_count
             map_count += 1.

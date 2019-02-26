@@ -106,7 +106,14 @@ class DataHelper(object):
 
         t = self.training_data.code
         tl = self.training_data.label
-        return eval_cls_map(q, t, ql, tl)
+        return eval_cls_map(q, t, ql, tl, at=1000)
+
+    def save(self, set_name, length):
+        to_save = {'set_code': self.training_data.code,
+                   'set_label': self.training_data.label,
+                   'test_code': self.test_data.code,
+                   'test_label': self.test_data.label}
+        sio.savemat('data/code/{}_{}.mat'.format(set_name, length), to_save)
 
 
 if __name__ == '__main__':

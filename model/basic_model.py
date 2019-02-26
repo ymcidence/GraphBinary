@@ -183,7 +183,7 @@ class BasicModel(object):
         actor_summary = tf.summary.merge(tf.get_collection(tf.GraphKeys.SUMMARIES, scope='actor'))
         critic_summary = tf.summary.merge(tf.get_collection(tf.GraphKeys.SUMMARIES, scope='critic'))
 
-        for i in range(50000):
+        for i in range(100000):
             train_batch = data.next_batch('train')
             train_dict = {self.image_in: train_batch['batch_image']}
             _, critic_value, critic_summary_value, critic_step = sess.run(
@@ -202,7 +202,7 @@ class BasicModel(object):
                 print('batch {}: actor {}, critic {}'.format(i, actor_value, critic_value))
                 writer.add_summary(hook_summary, actor_step)
 
-            if (i + 1) % 1000 == 0:
+            if (i + 1) % 2000 == 0:
                 print('Testing!!!!!!!!')
                 test_batch = data.next_batch('test')
                 test_dict = {self.image_in: test_batch['batch_image']}
@@ -214,6 +214,7 @@ class BasicModel(object):
 
             if (i + 1) % 3000 == 0:
                 self._save(sess, save_path, actor_step)
+        data.save('cifar', self.code_length)
 
     @staticmethod
     def _restore(sess: tf.Session, restore_file, var_list=None):
@@ -229,7 +230,7 @@ class BasicModel(object):
 
 if __name__ == '__main__':
     batch_size = 200
-    code_length = 32
+    code_length = 128
     train_file = 'data/cifar10_vgg_fc7_train.mat'
     test_file = 'data/cifar10_vgg_fc7_test.mat'
 
