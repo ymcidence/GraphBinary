@@ -1,6 +1,7 @@
 import numpy as np
 import scipy.io as sio
 from util.eval_tools import eval_cls_map
+import h5py
 
 
 class BasicDataset(object):
@@ -83,6 +84,14 @@ class MatDataset(BasicDataset):
         return self.this_batch
 
 
+class H5Dataset(MatDataset):
+    def _load_data(self):
+        this_file = h5py.File(self.file_name, 'r')
+        self.data = this_file['data'][:].squeeze()
+        self.label = this_file['label'][:].squeeze()
+        this_file.close()
+
+
 class DataHelper(object):
     def __init__(self, training_data: BasicDataset, test_data: BasicDataset):
         self.training_data = training_data
@@ -108,22 +117,16 @@ class DataHelper(object):
         tl = self.training_data.label
         return eval_cls_map(q, t, ql, tl, at=1000)
 
-    def save(self, set_name, length):
+    def save(self, set_name, length, folder='data'):
         to_save = {'set_code': self.training_data.code,
                    'set_label': self.training_data.label,
                    'test_code': self.test_data.code,
                    'test_label': self.test_data.label}
-        sio.savemat('data/code/{}_{}.mat'.format(set_name, length), to_save)
+        sio.savemat('{}/code/{}_{}.mat'.format(folder, set_name, length), to_save)
 
 
 if __name__ == '__main__':
-    config = dict(
-        set_size=160859,
-        batch_size=96,
-        data_path='E:\\WorkSpace\\Data\\TU\\ImageResized\\',
-        meta_file='E:\\WorkSpace\\Data\\TU\\Meta\\img_train.mat',
-        label_size=200
-    )
-    this_set = BasicDataset(**config)
-    this_set.next_batch_train()
+    file_name = '/home/ymcidence/Workspace/Data/vgg_feature/imagenet_vgg_fc7_test.h5'
+    conf = {'batch_size': 200, 'code_length': 5, 'file_name': file_name, 'phase': 'train'}
+    dataset = H5Dataset(**conf)
     print('hehe')

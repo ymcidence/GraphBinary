@@ -42,6 +42,7 @@ def fc_layer_hack(name, bottom, input_dim, output_dim, bias_term=True, weights_i
 @function.Defun(D_TYPE, D_TYPE, D_TYPE, D_TYPE)
 def doubly_sn_grad(logits, epsilon, dprev, dpout):
     prob = 1.0 / (1 + tf.exp(-logits))
+    # noinspection PyUnusedLocal
     yout = (tf.sign(prob - epsilon) + 1.0) / 2.0
 
     dlogits = prob * (1 - prob) * (dprev + dpout)
@@ -106,17 +107,17 @@ class BasicModel(object):
                 fc_layer_hack('critic_2', bottom=random_binary, input_dim=self.code_length, output_dim=1),
                 name='critic_sigmoid_2')
 
-        adj_pic = tf.expand_dims(tf.expand_dims(batch_adjacency, axis=0), axis=-1)
+        # adj_pic = tf.expand_dims(tf.expand_dims(batch_adjacency, axis=0), axis=-1)
 
-        tf.summary.image('actor/adj', adj_pic)
+        # tf.summary.image('actor/adj', adj_pic)
 
-        tf.summary.histogram('critic/fake_cont', random_in)
-        tf.summary.histogram('critic/fake_binary', random_binary)
+        # tf.summary.histogram('critic/fake_cont', random_in)
+        # tf.summary.histogram('critic/fake_binary', random_binary)
         tf.summary.scalar('critic/fake_logic', tf.reduce_mean(fake_logic))
         tf.summary.scalar('actor/real_logic', tf.reduce_mean(real_logic))
-        tf.summary.histogram('actor/real_cont', continuous_hidden)
-        tf.summary.histogram('actor/binary', codes)
-        tf.summary.histogram('actor/code_hidden', code_hidden)
+        # tf.summary.histogram('actor/real_cont', continuous_hidden)
+        # tf.summary.histogram('actor/binary', codes)
+        # tf.summary.histogram('actor/code_hidden', code_hidden)
         tf.summary.scalar('actor/binary', tf.reduce_mean(codes))
 
         return {
@@ -160,7 +161,7 @@ class BasicModel(object):
         train_list = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=scope)
         return tf.train.AdamOptimizer(1e-4).minimize(operator, global_step=self.global_step, var_list=train_list)
 
-    def train(self, sess: tf.Session, data: DataHelper, restore_file=None):
+    def train(self, sess: tf.Session, data: DataHelper, restore_file=None, log_path='data', task='cifar'):
         actor_loss, critic_loss = self._build_loss()
         actor_opt = self.opt(actor_loss, 'actor')
         critic_opt = self.opt(critic_loss, 'critic')
@@ -169,8 +170,8 @@ class BasicModel(object):
         sess.run(initial_op)
 
         time_string = strftime("%a%d%b%Y-%H%M%S", gmtime())
-        summary_path = os.path.join('data', 'log', time_string) + os.sep
-        save_path = os.path.join('data', 'model') + os.sep
+        summary_path = os.path.join(log_path, 'log', time_string) + os.sep
+        save_path = os.path.join(log_path, 'model') + os.sep
 
         if not os.path.exists(save_path):
             os.mkdir(save_path)
@@ -202,7 +203,7 @@ class BasicModel(object):
                 print('batch {}: actor {}, critic {}'.format(i, actor_value, critic_value))
                 writer.add_summary(hook_summary, actor_step)
 
-            if (i + 1) % 2000 == 0:
+            if (i + 1) % 5000 == 0:
                 print('Testing!!!!!!!!')
                 test_batch = data.next_batch('test')
                 test_dict = {self.image_in: test_batch['batch_image']}
@@ -214,7 +215,7 @@ class BasicModel(object):
 
             if (i + 1) % 3000 == 0:
                 self._save(sess, save_path, actor_step)
-        data.save('cifar', self.code_length)
+        data.save(task, self.code_length, folder=log_path)
 
     @staticmethod
     def _restore(sess: tf.Session, restore_file, var_list=None):
@@ -238,7 +239,7 @@ if __name__ == '__main__':
     train_config = {'batch_size': batch_size, 'code_length': code_length, 'file_name': train_file, 'phase': 'train'}
     test_config = {'batch_size': batch_size, 'code_length': code_length, 'file_name': test_file, 'phase': 'train'}
 
-    sess = tf.Session()
+    this_sess = tf.Session()
 
     model = BasicModel(**model_config)
 
@@ -246,4 +247,4 @@ if __name__ == '__main__':
     test_data = MatDataset(**test_config)
     data_helper = DataHelper(train_data, test_data)
 
-    model.train(sess, data_helper)
+    model.train(this_sess, data_helper)
