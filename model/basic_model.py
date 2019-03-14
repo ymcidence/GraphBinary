@@ -2,7 +2,7 @@ import tensorflow as tf
 from tensorflow.python.framework import function
 from util.layer import conventional_layers as layers
 from util.layer import graph_conv as gcn
-from util.data.dataset import DataHelper, MatDataset
+from util.data.dataset import DataHelper, MatDataset, BasicDataset
 from time import gmtime, strftime
 import os
 
@@ -87,7 +87,7 @@ class BasicModel(object):
 
             with tf.variable_scope('decoder'):
                 fc_2 = layers.fc_relu_layer('fc_2', continuous_hidden, 2048)
-                decode_result = layers.fc_layer('decode_result', fc_2, _feature_size)
+                decode_result = layers.fc_relu_layer('decode_result', fc_2, _feature_size)
 
         with tf.variable_scope('critic'):
             real_logic = tf.sigmoid(layers.fc_layer('critic', bottom=continuous_hidden, output_dim=1),
@@ -161,7 +161,7 @@ class BasicModel(object):
         train_list = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=scope)
         return tf.train.AdamOptimizer(1e-4).minimize(operator, global_step=self.global_step, var_list=train_list)
 
-    def train(self, sess: tf.Session, data: DataHelper, restore_file=None, log_path='data', task='cifar'):
+    def train(self, sess: tf.Session, data: DataHelper, restore_file=None, log_path='data'):
         actor_loss, critic_loss = self._build_loss()
         actor_opt = self.opt(actor_loss, 'actor')
         critic_opt = self.opt(critic_loss, 'critic')
@@ -215,7 +215,7 @@ class BasicModel(object):
 
             if (i + 1) % 3000 == 0:
                 self._save(sess, save_path, actor_step)
-        data.save(task, self.code_length, folder=log_path)
+        # data.save(task, self.code_length, folder=log_path)
 
     @staticmethod
     def _restore(sess: tf.Session, restore_file, var_list=None):
@@ -227,6 +227,20 @@ class BasicModel(object):
         saver = tf.train.Saver()
         saver.save(sess, save_path + 'YMModel', step)
         print('Saved!')
+
+    def extract(self, sess: tf.Session, data: DataHelper, log_path='data', task='cifar'):
+
+        for i in range(data.training_data.batch_num + 1):
+            this_batch = data.next_batch('train')
+            this_dict = {self.image_in: this_batch['batch_image']}
+            code = sess.run(self.net['codes'], feed_dict=this_dict)
+            data.update(code)
+        for i in range(data.test_data.batch_num + 1):
+            this_batch = data.next_batch('test')
+            this_dict = {self.image_in: this_batch['batch_image']}
+            code = sess.run(self.net['codes'], feed_dict=this_dict)
+            data.update(code, 'test')
+        data.save(task, self.code_length, folder=log_path)
 
 
 if __name__ == '__main__':

@@ -65,7 +65,7 @@ class MatDataset(BasicDataset):
         del mat_file
 
     def next_batch(self):
-        if self.batch_count == 0 and self.phase == 'train':
+        if self.batch_count == 0:
             self._shuffle()
 
         batch_start = self.batch_count * self.batch_size
