@@ -192,8 +192,8 @@ class BasicModel(object):
             _, actor_value, actor_summary_value, code_value, actor_step = sess.run(
                 [actor_opt, actor_loss, actor_summary, self.net['codes'], self.global_step], feed_dict=train_dict)
 
-            writer.add_summary(critic_summary_value, critic_step)
-            writer.add_summary(actor_summary_value, actor_step)
+            writer.add_summary(critic_summary_value, int(critic_step / 2))
+            writer.add_summary(actor_summary_value, int(actor_step / 2))
 
             data.update(code_value)
 
@@ -245,7 +245,7 @@ class BasicModel(object):
 
 if __name__ == '__main__':
     batch_size = 200
-    code_length = 128
+    code_length = 64
     train_file = 'data/cifar10_vgg_fc7_train.mat'
     test_file = 'data/cifar10_vgg_fc7_test.mat'
 
@@ -262,3 +262,4 @@ if __name__ == '__main__':
     data_helper = DataHelper(train_data, test_data)
 
     model.train(this_sess, data_helper)
+    model.extract(this_sess, data_helper, log_path='data', task='cifar')

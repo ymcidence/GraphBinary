@@ -1,4 +1,4 @@
-from model.basic_model import BasicModel
+from model.baseline_model import SGH as BasicModel
 from util.data.dataset import H5Dataset, DataHelper
 import tensorflow as tf
 
@@ -20,9 +20,10 @@ model = BasicModel(**model_config)
 
 train_data = H5Dataset(**train_config)
 test_data = H5Dataset(**test_config)
+test_data1 = H5Dataset(**test_config)
 base_data = H5Dataset(**base_config)
 data_helper = DataHelper(train_data, test_data)
-base_helper = DataHelper(base_data, test_data)
+base_helper = DataHelper(base_data, test_data1)
 
 model.train(sess, data_helper, log_path='../../Log')
 model.extract(sess, base_helper, log_path='../../Log', task=task)
