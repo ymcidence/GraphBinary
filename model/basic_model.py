@@ -245,7 +245,7 @@ class BasicModel(object):
 
 if __name__ == '__main__':
     batch_size = 200
-    code_length = 64
+    code_length = 12
     train_file = 'data/cifar10_vgg_fc7_train.mat'
     test_file = 'data/cifar10_vgg_fc7_test.mat'
 
