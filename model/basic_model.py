@@ -62,7 +62,8 @@ class BasicModel(object):
     def __init__(self, **kwargs):
         self.batch_size = kwargs.get('batch_size', 100)
         self.code_length = kwargs.get('code_length', 32)
-        self.image_in = tf.placeholder(dtype=D_TYPE, shape=[self.batch_size, 4096])
+        self.input_length = kwargs.get('input_length', 4096)
+        self.image_in = tf.placeholder(dtype=D_TYPE, shape=[self.batch_size, self.input_length])
         self.lam = kwargs.get('lam', 1)
         self.net = self._build_net()
         self.global_step = tf.Variable(0, trainable=False, name='global_step')
@@ -83,7 +84,7 @@ class BasicModel(object):
                 batch_adjacency = gcn.build_adjacency_hamming(codes, code_length=self.code_length)
 
                 continuous_hidden = tf.nn.sigmoid(
-                    gcn.spectrum_conv_layer('gcn', fc_1, batch_adjacency, 512, _batch_size))
+                    gcn.spectrum_conv_layer('gcn', fc_1, batch_adjacency, 64, _batch_size))
 
             with tf.variable_scope('decoder'):
                 fc_2 = layers.fc_relu_layer('fc_2', continuous_hidden, 2048)
@@ -98,7 +99,7 @@ class BasicModel(object):
                 name='critic_sigmoid_2')
 
         with tf.variable_scope('critic', reuse=True):
-            random_in = tf.random.uniform([_batch_size, 512])
+            random_in = tf.random.uniform([_batch_size, 64])
             fake_logic = tf.sigmoid(layers.fc_layer('critic', bottom=random_in, output_dim=1),
                                     name='critic_sigmoid')
 
@@ -245,7 +246,7 @@ class BasicModel(object):
 
 if __name__ == '__main__':
     batch_size = 200
-    code_length = 12
+    code_length = 32
     train_file = 'data/cifar10_vgg_fc7_train.mat'
     test_file = 'data/cifar10_vgg_fc7_test.mat'
 

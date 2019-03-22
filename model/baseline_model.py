@@ -8,10 +8,11 @@ from util.layer import graph_conv as gcn
 
 
 class SGH(bm.BasicModel):
+
     def _build_net(self):
         with tf.variable_scope('actor'):
             with tf.variable_scope('encoder'):
-                fc_1 = layers.fc_relu_layer('fc_1', bottom=self.image_in, output_dim=2048)
+                fc_1 = layers.fc_relu_layer('fc_1', bottom=self.image_in, output_dim=128)
                 # continuous_hidden = tf.nn.sigmoid(layers.fc_layer('cont_hidden', bottom=fc_1, output_dim=256))
 
                 _batch_size, _feature_size = self.image_in.get_shape().as_list()
@@ -22,11 +23,12 @@ class SGH(bm.BasicModel):
                 codes, code_prob = bm.doubly_sn(code_hidden, eps)
 
             with tf.variable_scope('decoder'):
-                fc_2 = tf.nn.relu(bm.fc_layer_hack('fc_2', bottom=codes, input_dim=self.code_length, output_dim=2048),
+                fc_2 = tf.nn.relu(bm.fc_layer_hack('fc_2', bottom=codes, input_dim=self.code_length, output_dim=128),
                                   name='critic_sigmoid_2')
-                decode_result = layers.fc_relu_layer('decode_result', fc_2, _feature_size)
+                decode_result = layers.fc_layer('decode_result', fc_2, _feature_size)
 
         tf.summary.scalar('actor/binary', tf.reduce_mean(codes))
+        tf.summary.image('actor/image', tf.reshape(decode_result, [-1, 28, 28, 1]), max_outputs=1)
 
         return {
             'codes': codes,
@@ -64,7 +66,7 @@ class SGH(bm.BasicModel):
 
         actor_summary = tf.summary.merge(tf.get_collection(tf.GraphKeys.SUMMARIES, scope='actor'))
 
-        for i in range(70000):
+        for i in range(5000):
             train_batch = data.next_batch('train')
             train_dict = {self.image_in: train_batch['batch_image']}
             _, actor_value, actor_summary_value, code_value, actor_step = sess.run(
@@ -93,6 +95,21 @@ class SGH(bm.BasicModel):
             if (i + 1) % 3000 == 0:
                 self._save(sess, save_path, actor_step)
         # data.save('', self.code_length, folder=log_path)
+
+    def extract_image(self, sess: tf.Session, data: DataHelper):
+        import numpy as np
+        import scipy.io as sio
+        rslt = np.zeros((data.training_data.batch_num * data.training_data.batch_size, self.input_length))
+
+        for i in range(data.training_data.batch_num + 1):
+            this_batch = data.next_batch('train')
+            this_dict = {self.image_in: this_batch['batch_image']}
+            code = sess.run(self.net['decode_result'], feed_dict=this_dict)
+            rslt[this_batch['batch_start']:this_batch['batch_end']] = code
+
+        to_save = {'set_image': rslt,
+                   'set_label': data.training_data.label}
+        sio.savemat('/home/ymcidence/Workspace/CodeGeass/MatlabWorkspace/sgh_code/mnist_sgh.mat', to_save)
 
 
 class SGHGCN(SGH):
@@ -189,13 +206,14 @@ if __name__ == '__main__':
     from util.data.dataset import MatDataset
 
     batch_size = 200
-    code_length = 8
-    train_file = 'data/cifar10_vgg_fc7_train.mat'
-    test_file = 'data/cifar10_vgg_fc7_test.mat'
+    code_length = 32
+    train_file = '/home/ymcidence/Workspace/CodeGeass/MatlabWorkspace/train_mnist.mat'
+    test_file = '/home/ymcidence/Workspace/CodeGeass/MatlabWorkspace/test_mnist.mat'
 
-    model_config = {'batch_size': batch_size, 'code_length': code_length}
+    model_config = {'batch_size': batch_size, 'code_length': code_length, 'input_length': 784}
     train_config = {'batch_size': batch_size, 'code_length': code_length, 'file_name': train_file, 'phase': 'train'}
-    test_config = {'batch_size': batch_size, 'code_length': code_length, 'file_name': test_file, 'phase': 'train'}
+    train_config2 = {'batch_size': batch_size, 'code_length': code_length, 'file_name': train_file, 'phase': 'test'}
+    test_config = {'batch_size': batch_size, 'code_length': code_length, 'file_name': test_file, 'phase': 'test'}
 
     this_sess = tf.Session()
 
@@ -205,5 +223,8 @@ if __name__ == '__main__':
     test_data = MatDataset(**test_config)
     data_helper = DataHelper(train_data, test_data)
 
+    train_data2 = MatDataset(**train_config2)
+    data_helper2 = DataHelper(train_data2, test_data)
+
     model.train(this_sess, data_helper)
-    # model.extract(this_sess, data_helper, log_path='data', task='cifar')
+    model.extract_image(this_sess, data_helper2)
