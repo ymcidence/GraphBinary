@@ -57,15 +57,18 @@ class MatDataset(BasicDataset):
             if i.find('data') >= 0:
                 data_key = i
         self.data = np.asarray(mat_file[data_key], dtype=np.float32)
-        sparse_label = np.asarray(mat_file[label_key], dtype=np.int32)
-        real_label = np.zeros((self.set_size, np.max(sparse_label) + 1))
-        for i in range(self.set_size):
-            real_label[i, sparse_label[i, 0]] = 1
-        self.label = real_label
+        if np.asarray(mat_file[label_key], dtype=np.int32).shape.__len__() == 1:
+            sparse_label = np.asarray(mat_file[label_key], dtype=np.int32)
+            real_label = np.zeros((self.set_size, np.max(sparse_label) + 1))
+            for i in range(self.set_size):
+                real_label[i, sparse_label[i, 0]] = 1
+            self.label = real_label
+        else:
+            self.label = np.asarray(mat_file[label_key], dtype=np.int32)
         del mat_file
 
     def next_batch(self):
-        if self.batch_count == 0:
+        if self.batch_count == 0 and self.phase == 'train':
             self._shuffle()
 
         batch_start = self.batch_count * self.batch_size
